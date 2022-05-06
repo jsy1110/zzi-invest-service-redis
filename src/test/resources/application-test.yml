@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:test
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  redis:
+    host: localhost
+    port: 6379
+
+  config:
+    activate:
+      on-profile: test
