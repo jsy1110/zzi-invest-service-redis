@@ -44,17 +44,15 @@ public class OrderService {
             @CacheEvict(value = CacheKey.SUMMARY, key = "#memberId"),
             @CacheEvict(value = CacheKey.ITEM, key = "#itemId")})
     public Order order(Long memberId, Long itemId, Long count) {
-        
-        Member member = memberRepository.findById(memberId).orElseThrow(
-                () -> {
-                    log.error("Cannot find member. MemberId = {}", memberId);
-                    throw new CustomException(ExceptionEnum.NOT_FOUND_MEMBER);
-                });
-        Item item = itemRepository.findById(itemId).orElseThrow(
-                () -> {
-                    log.error("Cannot find item. ItemId = {}", itemId);
-                    throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
-                });
+
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> {
+            log.error("Cannot find member. MemberId = {}", memberId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_MEMBER);
+        });
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> {
+            log.error("Cannot find item. ItemId = {}", itemId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+        });
 
         item.validateTime();
 
@@ -72,12 +70,19 @@ public class OrderService {
     }
 
     private void updateStock(Long itemId, Long count) {
-        Stock stock = stockRepository.findById(itemId).orElseThrow(
-                () -> {
-                    throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
-                });
+        Stock stock = stockRepository.findById(itemId).orElseThrow(() -> {
+            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+        });
 
-        stockRepository.save(new Stock(itemId, stock.calculateRemainStock(count)));
+        Long remain = stock.decreaseStock(count);
+        if (remain == 0) {
+            Item item = itemRepository.findById(itemId).orElseThrow(() -> {
+                throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+            });
+            item.updateStock(remain);
+        }
+
+        stockRepository.save(new Stock(itemId, remain));
     }
 
     @Cacheable(value = CacheKey.HISTORY, key = "#memberId")
@@ -112,19 +117,29 @@ public class OrderService {
     }
 
 
-    /** 주문 취소 */
+    /**
+     * 주문 취소
+     */
     @Transactional
     @Caching(evict = {@CacheEvict(value = CacheKey.HISTORY, key = "#result.member.id"),
             @CacheEvict(value = CacheKey.SUMMARY, key = "#result.member.id"),
             @CacheEvict(value = CacheKey.ITEM, key = "#result.itemId")})
     public Order cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(
-                () -> {
-                    log.error("Illegal cancel detected. orderId = {}", orderId);
-                    throw new CustomException(ExceptionEnum.NOT_FOUND_CANCEL_ORDER);
-                });;
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
+            log.error("Illegal cancel detected. orderId = {}", orderId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_CANCEL_ORDER);
+        });
+
         verifyCancel(orderId, order);
         order.cancel(order.getItemId());
+
+        Stock stock = stockRepository.findById(order.getItemId()).orElseThrow(() -> {
+            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+        });
+
+        Long remain = stock.increaseStock(order.getCount());
+        stockRepository.save(new Stock(order.getItemId(), remain));
+
         return order;
     }
 

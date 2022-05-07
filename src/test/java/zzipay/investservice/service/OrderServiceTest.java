@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
+import zzipay.investservice.repository.StockRepository;
 
 import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -32,6 +33,7 @@ class OrderServiceTest {
     @Autowired OrderService orderService;
     @Autowired OrderRepository orderRepository;
     @Autowired ItemRepository itemRepository;
+    @Autowired StockRepository stockRepository;
 
     @Autowired ItemService itemService;
     @Autowired MemberService memberService;
@@ -40,7 +42,7 @@ class OrderServiceTest {
 
     @BeforeEach
     void beforeEach() {
-
+        stockRepository.deleteAll();
     }
 
     @Test
@@ -64,10 +66,10 @@ class OrderServiceTest {
         assertEquals("상품 주문 시 상태는 ORDER가 되어야 한다.", OrderStatus.ORDER, getOrder.getStatus());
         assertEquals("주문한 상품수가 정확해야 한다.", orderCount, getOrder.getCount());
 
-        em.flush();
-        em.clear();
-        Credit getCredit = em.find(Credit.class, id);
-        assertEquals("주문 수량만큼 재고가 줄어야 한다.", 98L, getCredit.getStockQuantity());
+        ItemDto oneItem = itemService.findOneItem(id);
+        assertEquals("주문 수량만큼 재고가 줄어야 한다.",
+                98L,
+                (oneItem.getTotalInvestingAmount()- oneItem.getCurrentInvestingAmount()) / oneItem.getMinimumInvestingAmount());
     }
 
     @Test
@@ -84,10 +86,10 @@ class OrderServiceTest {
         //when
         Order order = orderService.order(member.getId(), credit.getId(), orderCount);
 
-        em.flush();
-        em.clear();
-        Credit getCredit = em.find(Credit.class, id);
-        ItemDto dto = itemService.findOneItem(credit.getId());
+        //em.flush();
+        //em.clear();
+        //Credit getCredit = em.find(Credit.class, id);
+        ItemDto dto = itemService.findOneItem(id);
 
         //then
         assertEquals("재고가 0개가 되면 item의 상태는 CLOSE가 되어야 한다.", InvestStatus.CLOSE, dto.getStatus());
@@ -201,16 +203,17 @@ class OrderServiceTest {
 
         Order order = orderService.order(member.getId(), credit.getId(), orderCount);
 
-        em.flush();
-        em.clear();
         //when
         orderService.cancelOrder(order.getId());
 
         //then
         Order getOrder = orderRepository.getById(order.getId());
         assertEquals("주문 취소시 상태는 CANCEL로 변경되야 한다.", OrderStatus.CANCEL, getOrder.getStatus());
-        Credit getCredit = em.find(Credit.class, id);
-        assertEquals("주문 취소된 상품은 그만큼 재고가 증가되어야 한다..", 10L, getCredit.getStockQuantity());
+
+        ItemDto oneItem = itemService.findOneItem(id);
+        assertEquals("주문 취소된 상품은 그만큼 재고가 증가되어야 한다.",
+                10L,
+                (oneItem.getTotalInvestingAmount()- oneItem.getCurrentInvestingAmount()) / oneItem.getMinimumInvestingAmount());
     }
 
     @Test
@@ -257,7 +260,6 @@ class OrderServiceTest {
 
         Long memberId = memberService.join(member);
 
-        em.persist(member);
         return member;
     }
 
@@ -271,7 +273,7 @@ class OrderServiceTest {
                 .time(new AvailableTime(start, end))
                 .build();
 
-        em.persist(credit);
+        itemService.saveItem(credit);
 
         return credit;
     }

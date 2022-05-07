@@ -21,12 +21,16 @@ public class Stock implements Serializable {
 
     private Long stock;
 
-    public Long calculateRemainStock(Long count) {
+    public Long decreaseStock(Long count) {
 
         if (this.stock < count) {
             log.info("Illegal ordered. ItemId = {}, count = {}", id, count);
             throw new CustomException(ExceptionEnum.NOT_ENOUGH_STOCK);
         }
         return this.stock - count;
+    }
+
+    public Long increaseStock(Long count) {
+        return this.stock + count;
     }
 }
