@@ -1,5 +1,6 @@
 package zzipay.investservice.service;
 
+import zzipay.investservice.cache.CacheKey;
 import zzipay.investservice.domain.Member;
 import zzipay.investservice.domain.Order;
 import zzipay.investservice.domain.OrderStatus;
@@ -39,8 +40,9 @@ public class OrderService {
     private final StockRepository stockRepository;
 
     @Transactional
-    @Caching(evict = {@CacheEvict(value = "myOrder", key = "#memberId"),
-            @CacheEvict(value = "myOrder", key = "#itemId")})
+    @Caching(evict = {@CacheEvict(value = CacheKey.HISTORY, key = "#memberId"),
+            @CacheEvict(value = CacheKey.SUMMARY, key = "#memberId"),
+            @CacheEvict(value = CacheKey.ITEM, key = "#itemId")})
     public Order order(Long memberId, Long itemId, Long count) {
         
         Member member = memberRepository.findById(memberId).orElseThrow(
@@ -64,14 +66,11 @@ public class OrderService {
                 .status(OrderStatus.ORDER)
                 .build();
 
-        // Redis 로 재고 관리 변경 예정
         updateStock(itemId, count);
 
-        // query 가 나눠서 2번 나갈 것으로 예상?
         return orderRepository.save(order);
     }
 
-    // DDD 다시 개발
     private void updateStock(Long itemId, Long count) {
         Stock stock = stockRepository.findById(itemId).orElseThrow(
                 () -> {
@@ -81,7 +80,7 @@ public class OrderService {
         stockRepository.save(new Stock(itemId, stock.calculateRemainStock(count)));
     }
 
-    @Cacheable(value = "myOrder", key = "#memberId")
+    @Cacheable(value = CacheKey.HISTORY, key = "#memberId")
     public List<UserOrderHistoryDto> findOrderHistory(Long memberId) {
         List<UserOrderHistoryDto> orderDtoList = new ArrayList<>();
         List<Order> orderList = orderRepository.findAllByMemberId(memberId);
@@ -107,6 +106,7 @@ public class OrderService {
         orderDtoList.add(orderDto);
     }
 
+    @Cacheable(value = CacheKey.SUMMARY, key = "#memberId")
     public List<UserOrderSummaryDto> findOrderSummary(Long memberId) {
         return orderRepository.findMemberOrderSummary(memberId);
     }
@@ -114,8 +114,10 @@ public class OrderService {
 
     /** 주문 취소 */
     @Transactional
-    @CacheEvict(value = "myOrder", allEntries = true)
-    public void cancelOrder(Long orderId) {
+    @Caching(evict = {@CacheEvict(value = CacheKey.HISTORY, key = "#result.member.id"),
+            @CacheEvict(value = CacheKey.SUMMARY, key = "#result.member.id"),
+            @CacheEvict(value = CacheKey.ITEM, key = "#result.itemId")})
+    public Order cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(
                 () -> {
                     log.error("Illegal cancel detected. orderId = {}", orderId);
@@ -123,6 +125,7 @@ public class OrderService {
                 });;
         verifyCancel(orderId, order);
         order.cancel(order.getItemId());
+        return order;
     }
 
     private void verifyCancel(Long orderId, Order order) {

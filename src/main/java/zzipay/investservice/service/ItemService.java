@@ -1,5 +1,6 @@
 package zzipay.investservice.service;
 
+import zzipay.investservice.cache.CacheKey;
 import zzipay.investservice.domain.item.Item;
 import zzipay.investservice.domain.item.Stock;
 import zzipay.investservice.dto.InvestStatus;
@@ -32,7 +33,7 @@ public class ItemService {
     private final StockRepository stockRepository;
 
     @Transactional
-    @CacheEvict(value = "myOrder", key = "#result.id")
+    @CacheEvict(value = CacheKey.ITEM, key = "#result.id")
     public Item saveItem(Item item) {
         validateDuplicateItem(item);
 
@@ -50,7 +51,12 @@ public class ItemService {
         }
     }
 
-    @Cacheable(value = "myOrder", key = "#itemId")
+    /**
+     * 아래의 경우 캐시를 활용할지는 고민해봐야함
+     * 아이템 조회를 하면서 재고 update 실행됨
+     */
+    //@Cacheable(value = "myOrder", key = "#itemId")
+    @Transactional
     public ItemDto findOneItem(Long itemId) {
         Item item = itemRepository.findById(itemId).orElseThrow(
                 () -> {
@@ -64,6 +70,7 @@ public class ItemService {
         return dto;
     }
 
+    @Transactional
     public List<ItemDto> findItems() {
 
         List<ItemDto> itemDtoList = new ArrayList<>();
