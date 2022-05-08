@@ -31,6 +31,9 @@ rebel.xml
 /build/
 .gradletasknamecache
 
+# QueryDSL
+/src/main/generated/
+
 # properties
 application-aws.yml
 application-local.yml
