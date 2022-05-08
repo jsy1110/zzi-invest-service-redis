@@ -47,7 +47,7 @@ public abstract class Item {
         this.stockQuantity = quantity;
     }
 
-    public void validateTime() {
+    public void validateOpenTime() {
         time.validateTime();
     }
 

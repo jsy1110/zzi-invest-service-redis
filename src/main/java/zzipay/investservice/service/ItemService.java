@@ -55,7 +55,6 @@ public class ItemService {
      * 아래의 경우 캐시를 활용할지는 고민해봐야함
      * 아이템 조회를 하면서 재고 update 실행됨
      */
-    //@Cacheable(value = "myOrder", key = "#itemId")
     @Transactional
     public ItemDto findOneItem(Long itemId) {
         Item item = itemRepository.findById(itemId).orElseThrow(

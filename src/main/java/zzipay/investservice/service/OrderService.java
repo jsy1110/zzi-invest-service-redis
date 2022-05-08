@@ -45,16 +45,10 @@ public class OrderService {
             @CacheEvict(value = CacheKey.ITEM, key = "#itemId")})
     public Order order(Long memberId, Long itemId, Long count) {
 
-        Member member = memberRepository.findById(memberId).orElseThrow(() -> {
-            log.error("Cannot find member. MemberId = {}", memberId);
-            throw new CustomException(ExceptionEnum.NOT_FOUND_MEMBER);
-        });
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> {
-            log.error("Cannot find item. ItemId = {}", itemId);
-            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
-        });
+        Member member = findMember(memberId);
+        Item item = findItem(itemId);
 
-        item.validateTime();
+        item.validateOpenTime();
 
         Order order = Order.builder()
                 .member(member)
@@ -64,25 +58,23 @@ public class OrderService {
                 .status(OrderStatus.ORDER)
                 .build();
 
-        updateStock(itemId, count);
+        removeStock(itemId, count);
 
         return orderRepository.save(order);
     }
 
-    private void updateStock(Long itemId, Long count) {
-        Stock stock = stockRepository.findById(itemId).orElseThrow(() -> {
-            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
-        });
+    private void removeStock(Long itemId, Long count) {
+        Stock stock = findStock(itemId);
+        Stock remain = stock.decreaseStock(count);
 
-        Long remain = stock.decreaseStock(count);
-        if (remain == 0) {
+        if (remain.getStock() == 0) {
             Item item = itemRepository.findById(itemId).orElseThrow(() -> {
                 throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
             });
-            item.updateStock(remain);
+            item.updateStock(remain.getStock());
         }
 
-        stockRepository.save(new Stock(itemId, remain));
+        stockRepository.save(remain);
     }
 
     @Cacheable(value = CacheKey.HISTORY, key = "#memberId")
@@ -91,7 +83,7 @@ public class OrderService {
         List<Order> orderList = orderRepository.findAllByMemberId(memberId);
 
         for (Order order : orderList) {
-            if (order.getStatus() == OrderStatus.ORDER) {
+            if (!order.isCancel()) {
                 addOrderToDto(orderDtoList, order);
             }
         }
@@ -116,7 +108,6 @@ public class OrderService {
         return orderRepository.findMemberOrderSummary(memberId);
     }
 
-
     /**
      * 주문 취소
      */
@@ -125,20 +116,14 @@ public class OrderService {
             @CacheEvict(value = CacheKey.SUMMARY, key = "#result.member.id"),
             @CacheEvict(value = CacheKey.ITEM, key = "#result.itemId")})
     public Order cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
-            log.error("Illegal cancel detected. orderId = {}", orderId);
-            throw new CustomException(ExceptionEnum.NOT_FOUND_CANCEL_ORDER);
-        });
+        Order order = findOrder(orderId);
 
         verifyCancel(orderId, order);
         order.cancel(order.getItemId());
 
-        Stock stock = stockRepository.findById(order.getItemId()).orElseThrow(() -> {
-            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
-        });
+        Stock stock = findStock(order.getItemId());
 
-        Long remain = stock.increaseStock(order.getCount());
-        stockRepository.save(new Stock(order.getItemId(), remain));
+        stockRepository.save(stock.increaseStock(order.getCount()));
 
         return order;
     }
@@ -148,5 +133,36 @@ public class OrderService {
             log.warn("Already canceled order. orderId = {}", orderId);
             throw new CustomException(ExceptionEnum.ALREADY_CANCEL_ORDER);
         }
+    }
+
+    private Item findItem(Long itemId) {
+        Item item = itemRepository.findById(itemId).orElseThrow(() -> {
+            log.error("Cannot find item. ItemId = {}", itemId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+        });
+        return item;
+    }
+
+    private Member findMember(Long memberId) {
+        Member member = memberRepository.findById(memberId).orElseThrow(() -> {
+            log.error("Cannot find member. MemberId = {}", memberId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_MEMBER);
+        });
+        return member;
+    }
+
+    private Stock findStock(Long itemId) {
+        Stock stock = stockRepository.findById(itemId).orElseThrow(() -> {
+            throw new CustomException(ExceptionEnum.NOT_FOUND_ORDER_PRODUCT);
+        });
+        return stock;
+    }
+
+    private Order findOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> {
+            log.error("Illegal cancel detected. orderId = {}", orderId);
+            throw new CustomException(ExceptionEnum.NOT_FOUND_CANCEL_ORDER);
+        });
+        return order;
     }
 }

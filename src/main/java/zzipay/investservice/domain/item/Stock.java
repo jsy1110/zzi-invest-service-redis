@@ -18,19 +18,18 @@ import java.io.Serializable;
 public class Stock implements Serializable {
     @Id
     private Long id;
-
     private Long stock;
 
-    public Long decreaseStock(Long count) {
+    public Stock decreaseStock(Long count) {
 
         if (this.stock < count) {
             log.info("Illegal ordered. ItemId = {}, count = {}", id, count);
             throw new CustomException(ExceptionEnum.NOT_ENOUGH_STOCK);
         }
-        return this.stock - count;
+        return new Stock(id, this.stock - count);
     }
 
-    public Long increaseStock(Long count) {
-        return this.stock + count;
+    public Stock increaseStock(Long count) {
+        return new Stock(id, this.stock + count);
     }
 }
