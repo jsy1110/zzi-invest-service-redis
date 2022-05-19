@@ -51,7 +51,7 @@ class OrderServiceTest {
         Address address = new Address("수원시", "이거리", "123-1");
         Member member = createMember("아이유", address);
         Credit credit = createCredit("신용상품A", 5000L, 100L, 100L,
-                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-05-15T01:30"),
+                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-12-15T01:30"),
                 1);
 
         Long orderCount = 2L;
@@ -77,7 +77,7 @@ class OrderServiceTest {
         //given
         Member member = createMember("김연아", new Address("용인시", "덕영대로", "123-1"));
         Credit credit = createCredit("신용상품A", 5000L, 10L, 10L,
-                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-05-15T01:30"),
+                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-12-15T01:30"),
                 1);
 
         Long orderCount = 10L;
@@ -100,7 +100,7 @@ class OrderServiceTest {
         //given
         Member member = createMember("김연아", new Address("용인시", "덕영대로", "123-1"));
         Credit credit = createCredit("신용상품A", 5000L, 10L, 10L,
-                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-05-15T01:30"),
+                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-12-15T01:30"),
                 1);
 
         Long orderCount = 12L;
@@ -195,7 +195,7 @@ class OrderServiceTest {
         //given
         Member member = createMember("김연아", new Address("용인시", "덕영대로", "123-1"));
         Credit credit = createCredit("신용상품A", 5000L, 10L, 10L,
-                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-05-15T01:30"),
+                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-12-15T01:30"),
                 1);
 
         Long orderCount = 2L;
@@ -236,7 +236,7 @@ class OrderServiceTest {
         //given
         Member member = createMember("김연아", new Address("용인시", "덕영대로", "123-1"));
         Credit credit = createCredit("신용상품A", 5000L, 10L, 10L,
-                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-05-15T01:30"),
+                LocalDateTime.parse("2022-04-01T01:30"), LocalDateTime.parse("2022-12-15T01:30"),
                 1);
 
         Long orderCount = 2L;
