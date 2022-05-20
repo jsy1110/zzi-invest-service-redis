@@ -13,7 +13,6 @@ cache:
 
 script: "./gradlew clean build"
 
-
 notifications:
   email:
     recipients:
