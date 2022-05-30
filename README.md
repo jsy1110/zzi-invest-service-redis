@@ -3,8 +3,8 @@
 ## 개발 환경
 
 - Framework: Springboot 2.6.6 + Spring Data JPA
-- DB : H2 1.4.200 (2019-10-14)
-- IDE: IntelliJ IDEA (Community Edition)
+- DB : H2, Maria DB + Redis
+- IDE: IntelliJ IDEA (Ultimate Edition)
 - OS: Window 10 Education
 - Language : JAVA11
 - Build : Gradle
